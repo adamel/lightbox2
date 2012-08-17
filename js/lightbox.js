@@ -52,6 +52,7 @@ lightbox = new Lightbox options
       this.fadeDuration = 500;
       this.labelImage = "Image";
       this.labelOf = "of";
+      this.fitWindow = true;
     }
 
     return LightboxOptions;
@@ -63,7 +64,9 @@ lightbox = new Lightbox options
     function Lightbox(options) {
       this.options = options;
       this.album = [];
-      this.currentImageIndex = void 0;
+      this.currentImageIndex = -1;
+      this.currentImageWidth = 0;
+      this.currentImageHeight = 0;
       this.init();
     }
 
@@ -147,6 +150,14 @@ lightbox = new Lightbox options
 
     Lightbox.prototype.start = function($link) {
       var $lightbox, $window, a, i, imageNumber, left, top, _len, _ref;
+      if (this.options.fitWindow) {
+        var _this = this;
+        $(window).on("resize", $.debounce(200, function() {
+          if (_this.currentImageIndex != -1) {
+            _this.sizeContainer(_this.currentImageWidth, _this.currentImageHeight);
+          }
+        }));
+      }
       $(window).on("resize", this.sizeOverlay);
       $('select, object, embed').css({
         visibility: "hidden"
@@ -171,7 +182,13 @@ lightbox = new Lightbox options
         }
       }
       $window = $(window);
-      top = $window.scrollTop() + $window.height() / 10;
+      if (this.options.fitWindow) {
+        top = 0;
+        left = 0;
+      } else{
+        top = $window.scrollTop() + $window.height() / 10;
+        left = $window.scrollLeft();
+      }
       left = $window.scrollLeft();
       $lightbox = $('#lightbox');
       $lightbox.css({
@@ -195,8 +212,8 @@ lightbox = new Lightbox options
       preloader = new Image;
       preloader.onload = function() {
         $image.attr('src', _this.album[imageNumber].link);
-        $image.width = preloader.width;
-        $image.height = preloader.height;
+        _this.currentImageWidth = $image.width = preloader.width;
+        _this.currentImageHeight = $image.height = preloader.height;
         return _this.sizeContainer(preloader.width, preloader.height);
       };
       preloader.src = this.album[imageNumber].link;
@@ -207,10 +224,39 @@ lightbox = new Lightbox options
       return $('#lightboxOverlay').width($(document).width()).height($(document).height());
     };
 
+    Lightbox.prototype.getImageSize = function(imgoW, imgoH) {
+      var imgW, imgH;
+      var $window = $(window);
+      var wW = $window.width(), wH = $window.height();
+
+      wW -= 20;
+      wH -= 20;
+      imgW = imgoW;
+      imgH = imgoH;
+      if (imgW > wW) {
+        imgH = (wW * imgH) / imgW;
+        imgW = wW;
+      }
+      if (imgH > wH) {
+        imgW = (wH * imgW) / imgH;
+        imgH = wH;
+      }
+      return [imgW, imgH];
+    }
+
     Lightbox.prototype.sizeContainer = function(imageWidth, imageHeight) {
       var $container, $lightbox, $outerContainer, containerBottomPadding, containerLeftPadding, containerRightPadding, containerTopPadding, newHeight, newWidth, oldHeight, oldWidth,
         _this = this;
       $lightbox = $('#lightbox');
+      if (this.options.fitWindow) {
+        var image, sizes;
+        sizes = this.getImageSize(imageWidth, imageHeight);
+        image = $lightbox.find('.lb-image');
+        image.css('max-width', '100%');
+        image.css('max-height', '100%');
+        imageWidth = sizes[0];
+        imageHeight = sizes[1];
+      }
       $outerContainer = $lightbox.find('.lb-outerContainer');
       oldWidth = $outerContainer.outerWidth();
       oldHeight = $outerContainer.outerHeight();
@@ -324,6 +370,7 @@ lightbox = new Lightbox options
 
     Lightbox.prototype.end = function() {
       this.disableKeyboardNav();
+      this.currentImageIndex = -1;
       $(window).off("resize", this.sizeOverlay);
       $('#lightbox').fadeOut(this.options.fadeDuration);
       $('#lightboxOverlay').fadeOut(this.options.fadeDuration);
