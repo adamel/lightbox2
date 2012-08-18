@@ -290,8 +290,8 @@ lightbox = new Lightbox options
       var $window = $(window);
       var wW = $window.width(), wH = $window.height();
 
-      wW -= 20;
-      wH -= 20;
+      wW -= 4;
+      wH -= 4;
       imgW = imgoW;
       imgH = imgoH;
       if (imgW > wW) {
