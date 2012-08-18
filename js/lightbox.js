@@ -53,11 +53,18 @@ lightbox = new Lightbox options
       this.labelImage = "Image";
       this.labelOf = "of";
       this.fitWindow = true;
+      this.interPageCookie = "mpicimg";
+      this.interPagePrev = "mpicprev";
+      this.interPageNext = "mpicnext";
     }
 
     return LightboxOptions;
 
   })();
+
+  function getParameter(container, name) {
+    return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(container)||[,""])[1].replace(/\+/g, '%20'))||null;
+  }
 
   Lightbox = (function() {
 
@@ -146,6 +153,23 @@ lightbox = new Lightbox options
         _this.end();
         return false;
       });
+
+      cookie = $.cookie(this.options.interPageCookie);
+      $.removeCookie(this.options.interPageCookie);
+      if (cookie) {
+        var img = getParameter(cookie, 'img');
+        var album = getParameter(cookie, 'album');
+        if (img && album) {
+          var imgs = $('.' + album);
+          if (imgs) {
+            if (img == "first") {
+              this.start($(imgs[0]));
+            } else if (img == "last") {
+              this.start($(imgs[imgs.length-1]));
+            }
+          }
+        }
+      }
     };
 
     Lightbox.prototype.start = function($link) {
@@ -167,6 +191,7 @@ lightbox = new Lightbox options
       imageNumber = 0;
       if ($link.attr('class') === 'lightbox') {
         this.album.push({
+          cls: $link.attr('class'),
           link: $link.attr('href'),
           title: $link.attr('title')
         });
@@ -175,6 +200,7 @@ lightbox = new Lightbox options
         for (i = 0, _len = _ref.length; i < _len; i++) {
           a = _ref[i];
           this.album.push({
+            cls: $link.attr('class'),
             link: $(a).attr('href'),
             title: $(a).attr('title')
           });
@@ -198,9 +224,32 @@ lightbox = new Lightbox options
       this.changeImage(imageNumber);
     };
 
+    Lightbox.prototype.changeHref = function(id, img) {
+      var page, href;
+      page = document.getElementById(id);
+      if (!page) {
+        return;
+      }
+      $.cookie(this.options.interPageCookie,
+               '?img=' + img + '&album='
+               + this.album[this.currentImageIndex].cls);
+      href = page.getAttribute('href');
+      document.location.href = href;
+    }
+
     Lightbox.prototype.changeImage = function(imageNumber) {
       var $image, $lightbox, preloader,
         _this = this;
+      if (this.album.length > 0) {
+        if (imageNumber == this.album.length) {
+          this.changeHref(this.options.interPageNext, 'first');
+          return;
+        } else if (imageNumber < 0) {
+          this.changeHref(this.options.interPagePrev, 'last');
+          return;
+        }
+      }
+
       this.disableKeyboardNav();
       $lightbox = $('#lightbox');
       $image = $lightbox.find('.lb-image');
@@ -304,8 +353,12 @@ lightbox = new Lightbox options
       var $lightbox;
       $lightbox = $('#lightbox');
       $lightbox.find('.lb-nav').show();
-      if (this.currentImageIndex > 0) $lightbox.find('.lb-prev').show();
-      if (this.currentImageIndex < this.album.length - 1) {
+      if (this.currentImageIndex > 0 ||
+          document.getElementById(this.options.interPagePrev)) {
+        $lightbox.find('.lb-prev').show();
+      }
+      if (this.currentImageIndex < this.album.length - 1 ||
+          document.getElementById(this.options.interPageNext)) {
         $lightbox.find('.lb-next').show();
       }
     };
@@ -358,11 +411,13 @@ lightbox = new Lightbox options
       if (keycode === KEYCODE_ESC || key.match(/x|o|c/)) {
         this.end();
       } else if (key === 'p' || keycode === KEYCODE_LEFTARROW) {
-        if (this.currentImageIndex !== 0) {
+        if (this.currentImageIndex !== 0 ||
+            document.getElementById(this.options.interPagePrev)) {
           this.changeImage(this.currentImageIndex - 1);
         }
       } else if (key === 'n' || keycode === KEYCODE_RIGHTARROW) {
-        if (this.currentImageIndex !== this.album.length - 1) {
+        if (this.currentImageIndex !== this.album.length - 1 ||
+            document.getElementById(this.options.interPageNext)) {
           this.changeImage(this.currentImageIndex + 1);
         }
       }
