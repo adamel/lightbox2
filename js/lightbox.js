@@ -53,6 +53,7 @@ lightbox = new Lightbox options
       this.labelImage = "Image";
       this.labelOf = "of";
       this.fitWindow = true;
+      this.supportSwipe = true;
       this.interPageCookie = "mpicimg";
       this.interPagePrev = "mpicprev";
       this.interPageNext = "mpicnext";
@@ -74,6 +75,7 @@ lightbox = new Lightbox options
       this.currentImageIndex = -1;
       this.currentImageWidth = 0;
       this.currentImageHeight = 0;
+      this.swipeEnabled = false;
       this.init();
     }
 
@@ -153,6 +155,15 @@ lightbox = new Lightbox options
         _this.end();
         return false;
       });
+      if (this.options.supportSwipe) {
+        $lightbox.touchwipe({
+          wipeLeft: function() { _this.swipeImage(_this.currentImageIndex + 1); },
+          wipeRight: function() { _this.swipeImage(_this.currentImageIndex - 1); },
+          min_move_x: 50,
+          min_move_y: 50,
+          preventDefaultEvents: true,
+        });
+      }
 
       cookie = $.cookie(this.options.interPageCookie);
       $.removeCookie(this.options.interPageCookie);
@@ -394,10 +405,12 @@ lightbox = new Lightbox options
     };
 
     Lightbox.prototype.enableKeyboardNav = function() {
+      this.swipeEnabled = true;
       $(document).on('keyup.keyboard', $.proxy(this.keyboardAction, this));
     };
 
     Lightbox.prototype.disableKeyboardNav = function() {
+      this.swipeEnabled = false;
       $(document).off('.keyboard');
     };
 
@@ -422,6 +435,13 @@ lightbox = new Lightbox options
         }
       }
     };
+
+    Lightbox.prototype.swipeImage = function(imageNumber) {
+      if (!this.swipeEnabled) {
+        return;
+      }
+      this.changeImage(imageNumber);
+    }
 
     Lightbox.prototype.end = function() {
       this.disableKeyboardNav();
