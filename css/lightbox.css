@@ -124,6 +124,9 @@
 /* line 88, ../sass/lightbox.sass */
 .lb-dataContainer {
   margin: 0 auto;
+  position: relative;
+  z-index: 10001;
+  margin-top: -40px;
   padding-top: 5px;
   *zoom: 1;
   width: 100%;
@@ -169,6 +172,9 @@
   clear: left;
   padding-bottom: 1em;
   font-size: 11px;
+  vertical-align: text-bottom;
+  position: absolute;
+  bottom: 2px;
 }
 /* line 112, ../sass/lightbox.sass */
 .lb-data .lb-close {
